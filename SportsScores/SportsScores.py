@@ -1,41 +1,67 @@
 # Auto-install required libraries
 import subprocess
 import sys
+import importlib
 
 def install_package(package):
     """Install a package using pip"""
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package, "--quiet"])
         return True
     except subprocess.CalledProcessError:
         return False
 
-# Required packages
-required_packages = ['streamlit', 'pandas', 'requests', 'beautifulsoup4', 'lxml']
+def check_and_install_packages():
+    """Check and install required packages"""
+    required_packages = {
+        'streamlit': 'streamlit',
+        'pandas': 'pandas', 
+        'requests': 'requests',
+        'bs4': 'beautifulsoup4',
+        'lxml': 'lxml'
+    }
+    
+    missing_packages = []
+    
+    for import_name, package_name in required_packages.items():
+        try:
+            importlib.import_module(import_name)
+        except ImportError:
+            missing_packages.append(package_name)
+    
+    if missing_packages:
+        print("Installing missing packages...")
+        for package in missing_packages:
+            print(f"Installing {package}...")
+            if install_package(package):
+                print(f"✅ {package} installed successfully")
+            else:
+                print(f"❌ Failed to install {package}")
+        
+        # Try to restart the module imports
+        try:
+            importlib.invalidate_caches()
+        except:
+            pass
 
-# Check and install packages
-for package in required_packages:
-    try:
-        if package == 'beautifulsoup4':
-            __import__('bs4')
-        else:
-            __import__(package)
-    except ImportError:
-        print(f"Installing {package}...")
-        if install_package(package):
-            print(f"✅ {package} installed successfully")
-        else:
-            print(f"❌ Failed to install {package}")
+# Run the installation check
+check_and_install_packages()
 
 # Now import all required libraries
-import streamlit as st
-import pandas as pd
-import requests
-from bs4 import BeautifulSoup
-import json
-from datetime import datetime, timedelta
-import time
-import re
+try:
+    import streamlit as st
+    import pandas as pd
+    import requests
+    from bs4 import BeautifulSoup
+    import json
+    from datetime import datetime, timedelta
+    import time
+    import re
+    import random  # Added missing import
+except ImportError as e:
+    st.error(f"Failed to import required libraries: {e}")
+    st.error("Please run: pip install streamlit pandas requests beautifulsoup4 lxml")
+    st.stop()
 
 # Page configuration - ESPN style
 st.set_page_config(
