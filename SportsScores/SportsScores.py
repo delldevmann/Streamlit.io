@@ -485,6 +485,21 @@ def generate_sample_data(sport_key):
             ('Lakers', 'LAL', '35-28'), ('Warriors', 'GSW', '32-31'),
             ('Celtics', 'BOS', '42-21'), ('Heat', 'MIA', '36-27'),
             ('Nuggets', 'DEN', '40-23'), ('Suns', 'PHX', '34-29')
+        ],
+        'nhl': [
+            ('Rangers', 'NYR', '28-15-3'), ('Bruins', 'BOS', '25-18-5'),
+            ('Lightning', 'TB', '26-16-6'), ('Panthers', 'FLA', '24-17-7'),
+            ('Avalanche', 'COL', '29-14-5'), ('Oilers', 'EDM', '27-15-6')
+        ],
+        'college-football': [
+            ('Alabama', 'ALA', '11-1'), ('Georgia', 'UGA', '10-2'),
+            ('Michigan', 'MICH', '12-0'), ('Texas', 'TEX', '9-3'),
+            ('Oregon', 'ORE', '10-2'), ('Washington', 'WASH', '11-1')
+        ],
+        'mens-college-basketball': [
+            ('Duke', 'DUKE', '15-3'), ('UNC', 'UNC', '14-4'),
+            ('Kansas', 'KU', '16-2'), ('Kentucky', 'UK', '13-5'),
+            ('UCLA', 'UCLA', '12-6'), ('Gonzaga', 'GONZ', '17-1')
         ]
     }
     
@@ -496,18 +511,27 @@ def generate_sample_data(sport_key):
             away_team, away_abbr, away_record = current_teams[i]
             home_team, home_abbr, home_record = current_teams[i + 1]
             
-            # Generate realistic scores
+            # Generate realistic scores based on sport
             if sport_key == 'mlb':
                 away_score = random.randint(2, 12)
                 home_score = random.randint(2, 12)
+                status_options = ['Final', 'Top 7th', 'Bot 9th', 'Top 5th', 'Bot 8th']
             elif sport_key == 'nfl':
                 away_score = random.randint(14, 35)
                 home_score = random.randint(14, 35)
-            else:  # nba
+                status_options = ['Final', '2nd Quarter', '4th Quarter', 'Halftime']
+            elif sport_key == 'nba':
                 away_score = random.randint(95, 130)
                 home_score = random.randint(95, 130)
-            
-            status_options = ['Final', 'Top 7th', 'Bot 9th', 'Live', 'End 3rd']
+                status_options = ['Final', '2nd Quarter', '4th Quarter', '3rd Quarter']
+            elif sport_key == 'nhl':
+                away_score = random.randint(1, 6)
+                home_score = random.randint(1, 6)
+                status_options = ['Final', '2nd Period', '3rd Period', '1st Period']
+            else:  # college sports
+                away_score = random.randint(65, 95)
+                home_score = random.randint(65, 95)
+                status_options = ['Final', '2nd Half', '1st Half', 'Halftime']
             
             games.append({
                 'away_team': away_team,
@@ -517,14 +541,14 @@ def generate_sample_data(sport_key):
                 'away_record': away_record,
                 'home_record': home_record,
                 'status': random.choice(status_options),
-                'completed': random.choice([True, False]),
-                'clock': '2:34' if not random.choice([True, False]) else ''
+                'completed': random.choice([True, False, False]),  # More likely to be completed
+                'clock': random.choice(['', '2:34', '12:45', '5:21']) if random.random() < 0.3 else ''
             })
     
     return games
 
 def display_espn_game_card(game):
-    """Display game in ESPN scoreboard style"""
+    """Display game in ESPN scoreboard style - simplified version"""
     # Determine game status styling
     status = game.get('status', 'Scheduled')
     is_live = status.lower() in ['live', 'top', 'bot', 'end', '1st', '2nd', '3rd', '4th'] and not game.get('completed')
@@ -536,46 +560,83 @@ def display_espn_game_card(game):
     away_winning = away_score > home_score
     home_winning = home_score > away_score
     
-    # Game header (date/status info)
-    game_header = "Today" if not is_final else "Final"
-    if is_live:
-        game_header = "Live"
+    # Game header
+    game_header = "Final" if is_final else ("Live" if is_live else "Today")
     
-    # Create the ESPN-style card
-    st.markdown(f"""
-    <div class="game-card">
-        <div class="game-header">{game_header}</div>
-        <div class="game-content">
-            <!-- Away Team Row -->
-            <div class="team-row">
-                <div class="team-info">
-                    <div class="team-logo">{game.get('away_team', 'TBD')[:2]}</div>
-                    <span class="team-name" style="{'font-weight: bold;' if away_winning else ''}">{game.get('away_team', 'TBD')}</span>
-                    <span class="team-record">({game.get('away_record', '0-0')})</span>
-                </div>
-                <div class="team-score {'winning-score' if away_winning else 'losing-score'}">{away_score}</div>
-            </div>
-            
-            <!-- Home Team Row -->
-            <div class="team-row">
-                <div class="team-info">
-                    <div class="team-logo">{game.get('home_team', 'TBD')[:2]}</div>
-                    <span class="team-name" style="{'font-weight: bold;' if home_winning else ''}">{game.get('home_team', 'TBD')}</span>
-                    <span class="team-record">({game.get('home_record', '0-0')})</span>
-                </div>
-                <div class="team-score {'winning-score' if home_winning else 'losing-score'}">{home_score}</div>
-            </div>
-            
-            <!-- Game Status -->
-            <div class="game-status">
-                <span class="{'status-live' if is_live else 'status-final' if is_final else 'status-scheduled'}">
-                    {status}
-                    {f" • {game.get('clock', '')}" if game.get('clock') and is_live else ""}
-                </span>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Create container with ESPN styling
+    with st.container():
+        # Add custom styling for this specific container
+        st.markdown("""
+        <style>
+        .game-container {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin: 10px 0;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .game-status-header {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Game header
+        st.markdown(f'<div class="game-status-header">{game_header}</div>', unsafe_allow_html=True)
+        
+        # Away team row
+        col1, col2, col3 = st.columns([1, 4, 1])
+        with col1:
+            st.markdown(f"**{game.get('away_team', 'TBD')[:2]}**")
+        with col2:
+            team_name = game.get('away_team', 'TBD')
+            record = game.get('away_record', '0-0')
+            if away_winning:
+                st.markdown(f"**{team_name}** ({record})")
+            else:
+                st.markdown(f"{team_name} ({record})")
+        with col3:
+            if away_winning:
+                st.markdown(f"**{away_score}**")
+            else:
+                st.markdown(f"{away_score}")
+        
+        # Home team row
+        col1, col2, col3 = st.columns([1, 4, 1])
+        with col1:
+            st.markdown(f"**{game.get('home_team', 'TBD')[:2]}**")
+        with col2:
+            team_name = game.get('home_team', 'TBD')
+            record = game.get('home_record', '0-0')
+            if home_winning:
+                st.markdown(f"**{team_name}** ({record})")
+            else:
+                st.markdown(f"{team_name} ({record})")
+        with col3:
+            if home_winning:
+                st.markdown(f"**{home_score}**")
+            else:
+                st.markdown(f"{home_score}")
+        
+        # Status
+        status_text = status
+        if game.get('clock') and is_live:
+            status_text += f" • {game.get('clock')}"
+        
+        if is_live:
+            st.markdown(f"🔴 **{status_text}**")
+        elif is_final:
+            st.markdown(f"✅ {status_text}")
+        else:
+            st.markdown(f"⏰ {status_text}")
+        
+        st.markdown("---")
 
 # Auto-refresh toggle in sidebar
 with st.sidebar:
